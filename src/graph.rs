@@ -4,7 +4,7 @@ use petgraph::visit::Topo;
 
 use prelude::*;
 
-type Node = Box<Module + Send>;
+pub type Node = Box<Module + Send>;
 
 pub struct AudioGraph {
     graph: Graph<Node, ()>,
@@ -54,5 +54,25 @@ impl AudioGraph {
 
     pub fn connect(&mut self, a: NodeIndex, b: NodeIndex) {
         self.graph.update_edge(a, b, ());
+    }
+
+    pub fn set_inputs(&mut self, sink: NodeIndex, sources: &[NodeIndex]) {
+        while let Some(edge) = self
+            .graph
+            .neighbors_directed(sink, Incoming)
+            .detach()
+            .next_edge(&self.graph)
+        {
+            self.graph.remove_edge(edge);
+        }
+        for source in sources.iter().rev() {
+            self.graph.update_edge(*source, sink, ());
+        }
+    }
+
+    pub fn chain(&mut self, nodes: &[NodeIndex]) {
+        for i in 0..(nodes.len() - 1) {
+            self.connect(nodes[i], nodes[i + 1]);
+        }
     }
 }

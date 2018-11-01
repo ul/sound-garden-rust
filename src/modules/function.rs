@@ -52,3 +52,30 @@ impl Module for Fn2 {
         }
     }
 }
+
+pub struct Fn3 {
+    ys: Vec<Sample>,
+    f: fn(Sample, Sample, Sample) -> Sample,
+}
+
+impl Fn3 {
+    pub fn new(ctx: &Context, f: fn(Sample, Sample, Sample) -> Sample) -> Box<Self> {
+        Box::new(Fn3 {
+            ys: vec![0.0; ctx.channels],
+            f,
+        })
+    }
+}
+
+impl Module for Fn3 {
+    fn output(&self) -> &[Sample] {
+        &self.ys
+    }
+
+    fn sample(&mut self, ctx: &mut Context, input: &[Sample]) {
+        let channels = ctx.channels;
+        for i in 0..channels {
+            self.ys[i] = (self.f)(input[i], input[i + channels], input[i + 2 * channels]);
+        }
+    }
+}
