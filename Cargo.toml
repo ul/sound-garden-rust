@@ -1,0 +1,12 @@
+[package]
+name = "sound-garden"
+version = "0.1.0"
+authors = ["Ruslan Prokopchuk <fer.obbee@gmail.com>"]
+
+[dependencies]
+cpal = "0"
+fixedbitset = "0"
+petgraph = "0"
+
+[profile.release]
+lto = true
