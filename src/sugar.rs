@@ -1,63 +1,91 @@
 use prelude::*;
 
-impl Context {
-    pub fn constant(&self, x: Sample) -> Node {
-        Constant::new(self, x)
+impl AudioGraph {
+    pub fn constant(&mut self, x: Sample) -> NodeIndex {
+        let node = Constant::new(&mut self.ctx, x);
+        self.add_node(node)
     }
 
-    pub fn phasor(&self) -> Node {
-        Phasor::new(self)
+    pub fn phasor(&mut self, frequency: NodeIndex) -> NodeIndex {
+        let node = Phasor::new(&mut self.ctx);
+        let node_idx = self.add_node(node);
+        self.connect(frequency, node_idx);
+        node_idx
     }
 
-    pub fn fn1(&self, f: fn(Sample) -> Sample) -> Node {
-        Fn1::new(self, f)
+    pub fn fn1(&mut self, f: fn(Sample) -> Sample) -> NodeIndex {
+        let node = Fn1::new(&mut self.ctx, f);
+        self.add_node(node)
     }
 
-    pub fn fn2(&self, f: fn(Sample, Sample) -> Sample) -> Node {
-        Fn2::new(self, f)
+    pub fn fn2(&mut self, f: fn(Sample, Sample) -> Sample) -> NodeIndex {
+        let node = Fn2::new(&mut self.ctx, f);
+        self.add_node(node)
     }
 
-    pub fn fn3(&self, f: fn(Sample, Sample, Sample) -> Sample) -> Node {
-        Fn3::new(self, f)
+    pub fn fn3(&mut self, f: fn(Sample, Sample, Sample) -> Sample) -> NodeIndex {
+        let node = Fn3::new(&mut self.ctx, f);
+        self.add_node(node)
     }
 
-    pub fn add(&self) -> Node {
-        self.fn2(add)
+    pub fn add(&mut self, a: NodeIndex, b: NodeIndex) -> NodeIndex {
+        let c = self.fn2(add);
+        self.set_inputs(c, &[a, b]);
+        c
     }
 
-    pub fn mul(&self) -> Node {
-        self.fn2(mul)
+    pub fn mul(&mut self, a: NodeIndex, b: NodeIndex) -> NodeIndex {
+        let c = self.fn2(mul);
+        self.set_inputs(c, &[a, b]);
+        c
     }
 
-    pub fn sub(&self) -> Node {
-        self.fn2(sub)
+    pub fn sub(&mut self, a: NodeIndex, b: NodeIndex) -> NodeIndex {
+        let c = self.fn2(sub);
+        self.set_inputs(c, &[a, b]);
+        c
     }
 
-    pub fn div(&self) -> Node {
-        self.fn2(div)
+    pub fn div(&mut self, a: NodeIndex, b: NodeIndex) -> NodeIndex {
+        let c = self.fn2(div);
+        self.set_inputs(c, &[a, b]);
+        c
     }
 
-    pub fn sine(&self) -> Node {
-        self.fn1(sine)
+    pub fn osc(&mut self, f: fn(Sample) -> Sample, frequency: NodeIndex) -> NodeIndex {
+        let phasor = self.phasor(frequency);
+        let osc = self.fn1(f);
+        self.connect(phasor, osc);
+        osc
     }
 
-    pub fn cosine(&self) -> Node {
-        self.fn1(cosine)
+    pub fn sine(&mut self, frequency: NodeIndex) -> NodeIndex {
+        self.osc(sine, frequency)
     }
 
-    pub fn tri(&self) -> Node {
-        self.fn1(triangle)
+    pub fn cosine(&mut self, frequency: NodeIndex) -> NodeIndex {
+        self.osc(cosine, frequency)
     }
 
-    pub fn pulse(&self) -> Node {
-        self.fn2(rectangle)
+    pub fn tri(&mut self, frequency: NodeIndex) -> NodeIndex {
+        self.osc(triangle, frequency)
     }
 
-    pub fn range(&self) -> Node {
-        self.fn3(range)
+    pub fn pulse(&mut self, frequency: NodeIndex, width: NodeIndex) -> NodeIndex {
+        let p = self.fn2(rectangle);
+        self.set_inputs(p, &[frequency, width]);
+        p
     }
 
-    pub fn unit(&self) -> Node {
-        self.fn1(unit)
+    pub fn range(&mut self, x: NodeIndex, a: NodeIndex, b: NodeIndex) -> NodeIndex {
+        let out = self.fn3(range);
+        self.set_inputs(out, &[x, a, b]);
+        out
+    }
+
+    pub fn unit(&mut self, x: NodeIndex) -> NodeIndex {
+        let y = self.fn1(unit);
+        self.connect(x, y);
+        y
     }
 }

@@ -15,23 +15,17 @@ use prelude::*;
 
 fn main() {
     let (event_loop, ctx) = audio::init();
-    let mut graph = AudioGraph::new();
+    let mut g = AudioGraph::new(ctx);
 
-    let lfo_freq = graph.add_node(ctx.constant(0.5));
-    let lfo_phase = graph.add_node(ctx.phasor());
-    let lfo_osc = graph.add_node(ctx.sine());
-    let lfo_factor = graph.add_node(ctx.constant(20.0));
-    let lfo = graph.add_node(ctx.mul());
+    let lfo_freq = g.constant(0.5);
+    let lfo_osc = g.sine(lfo_freq);
+    let lfo_factor = g.constant(20.0);
+    let lfo = g.mul(lfo_osc, lfo_factor);
 
-    let base_freq = graph.add_node(ctx.constant(440.0));
-    let freq = graph.add_node(ctx.add());
-    let phase = graph.add_node(ctx.phasor());
-    let osc = graph.add_node(ctx.sine());
+    let base_freq = g.constant(440.0);
+    let freq = g.add(lfo, base_freq);
 
-    graph.chain(&[lfo_freq, lfo_phase, lfo_osc]);
-    graph.set_inputs(lfo, &[lfo_osc, lfo_factor]);
-    graph.set_inputs(freq, &[base_freq, lfo]);
-    graph.chain(&[freq, phase, osc]);
+    g.sine(freq);
 
-    audio::run(&event_loop, ctx, graph);
+    audio::run(&event_loop, g);
 }

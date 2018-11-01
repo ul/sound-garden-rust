@@ -1,5 +1,4 @@
 use fixedbitset::FixedBitSet;
-use petgraph::prelude::*;
 use petgraph::visit::Topo;
 
 use prelude::*;
@@ -7,24 +6,30 @@ use prelude::*;
 pub type Node = Box<Module + Send>;
 
 pub struct AudioGraph {
-    graph: Graph<Node, ()>,
+    pub ctx: Context,
+    graph: StableGraph<Node, ()>,
     topo: Topo<NodeIndex, FixedBitSet>,
     input: Vec<Sample>,
+    output: Vec<Sample>,
 }
 
 impl AudioGraph {
-    pub fn new() -> Self {
-        let graph = Graph::default();
+    pub fn new(ctx: Context) -> Self {
+        let graph = StableGraph::default();
         let topo = Topo::new(&graph);
+        let output = vec![0.0; ctx.channels];
         AudioGraph {
+            ctx,
             graph,
             topo,
             input: vec![0.0; 256],
+            output,
         }
     }
 
-    pub fn sample(&mut self, ctx: &mut Context, output: &mut [Sample]) {
+    pub fn sample(&mut self) -> &[Sample] {
         let input = &mut self.input;
+        let ctx = &mut self.ctx;
         let channels = ctx.channels;
         let mut last_node = None;
         self.topo.reset(&self.graph);
@@ -44,8 +49,10 @@ impl AudioGraph {
         if let Some(idx) = last_node {
             let g = &mut self.graph;
             let out = &g[idx].output();
-            output[..ctx.channels].clone_from_slice(&out[..ctx.channels]);
+            self.output[..ctx.channels].clone_from_slice(&out[..ctx.channels]);
         }
+        ctx.sample_number += 1;
+        &self.output
     }
 
     pub fn add_node(&mut self, n: Node) -> NodeIndex {
@@ -53,10 +60,11 @@ impl AudioGraph {
     }
 
     pub fn connect(&mut self, a: NodeIndex, b: NodeIndex) {
+        self.clear_inputs(b);
         self.graph.update_edge(a, b, ());
     }
 
-    pub fn set_inputs(&mut self, sink: NodeIndex, sources: &[NodeIndex]) {
+    pub fn clear_inputs(&mut self, sink: NodeIndex) {
         while let Some(edge) = self
             .graph
             .neighbors_directed(sink, Incoming)
@@ -65,6 +73,10 @@ impl AudioGraph {
         {
             self.graph.remove_edge(edge);
         }
+    }
+
+    pub fn set_inputs(&mut self, sink: NodeIndex, sources: &[NodeIndex]) {
+        self.clear_inputs(sink);
         for source in sources.iter().rev() {
             self.graph.update_edge(*source, sink, ());
         }
@@ -72,7 +84,12 @@ impl AudioGraph {
 
     pub fn chain(&mut self, nodes: &[NodeIndex]) {
         for i in 0..(nodes.len() - 1) {
-            self.connect(nodes[i], nodes[i + 1]);
+            self.clear_inputs(nodes[i + 1]);
+            self.graph.update_edge(nodes[i], nodes[i + 1], ());
         }
+    }
+
+    pub fn output(&self) -> &[Sample] {
+        &self.output
     }
 }
