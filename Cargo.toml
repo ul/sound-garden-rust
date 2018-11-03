@@ -1,12 +1,15 @@
 [package]
-name = "sound-garden"
+name = "sound_garden"
 version = "0.1.0"
 authors = ["Ruslan Prokopchuk <fer.obbee@gmail.com>"]
 
+[workspace]
+
 [dependencies]
+audio_graph = { path = "audio_graph" } 
+conrod = { version = "0", features = ["glium", "winit"] }
 cpal = "0"
-fixedbitset = "0"
-petgraph = "0"
+parking_lot = "0"
 
 [profile.release]
 lto = true

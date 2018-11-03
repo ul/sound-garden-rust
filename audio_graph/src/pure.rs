@@ -1,3 +1,7 @@
+//! # Numeric functions
+//!
+//! These functions could be passed to Fn1::new, Fn2::new and so on (depending on arity)
+//! to create Modules which just pass their sources through pure transformation.
 use prelude::*;
 use std::f64::consts::PI;
 

@@ -1,4 +1,11 @@
-use prelude::*;
+//! # Functions
+//!
+//! Fn*N* modules allow to use regular numeric functions to transform input of *N* sources.
+//!
+//! Sources to connect: *N*, one for each argument of pure function.
+use context::Context;
+use module::Module;
+use sample::{Frame, Sample};
 
 pub struct Fn1 {
     ys: Vec<Sample>,
@@ -8,19 +15,19 @@ pub struct Fn1 {
 impl Fn1 {
     pub fn new(ctx: &Context, f: fn(Sample) -> Sample) -> Box<Self> {
         Box::new(Fn1 {
-            ys: vec![0.0; ctx.channels],
+            ys: vec![0.0; ctx.channels()],
             f,
         })
     }
 }
 
 impl Module for Fn1 {
-    fn output(&self) -> &[Sample] {
+    fn output(&self) -> &Frame {
         &self.ys
     }
 
-    fn sample(&mut self, ctx: &mut Context, input: &[Sample]) {
-        for i in 0..ctx.channels {
+    fn sample(&mut self, ctx: &mut Context, input: &Frame) {
+        for i in 0..ctx.channels() {
             self.ys[i] = (self.f)(input[i]);
         }
     }
@@ -34,19 +41,19 @@ pub struct Fn2 {
 impl Fn2 {
     pub fn new(ctx: &Context, f: fn(Sample, Sample) -> Sample) -> Box<Self> {
         Box::new(Fn2 {
-            ys: vec![0.0; ctx.channels],
+            ys: vec![0.0; ctx.channels()],
             f,
         })
     }
 }
 
 impl Module for Fn2 {
-    fn output(&self) -> &[Sample] {
+    fn output(&self) -> &Frame {
         &self.ys
     }
 
-    fn sample(&mut self, ctx: &mut Context, input: &[Sample]) {
-        let channels = ctx.channels;
+    fn sample(&mut self, ctx: &mut Context, input: &Frame) {
+        let channels = ctx.channels();
         for i in 0..channels {
             self.ys[i] = (self.f)(input[i], input[i + channels]);
         }
@@ -61,19 +68,19 @@ pub struct Fn3 {
 impl Fn3 {
     pub fn new(ctx: &Context, f: fn(Sample, Sample, Sample) -> Sample) -> Box<Self> {
         Box::new(Fn3 {
-            ys: vec![0.0; ctx.channels],
+            ys: vec![0.0; ctx.channels()],
             f,
         })
     }
 }
 
 impl Module for Fn3 {
-    fn output(&self) -> &[Sample] {
+    fn output(&self) -> &Frame {
         &self.ys
     }
 
-    fn sample(&mut self, ctx: &mut Context, input: &[Sample]) {
-        let channels = ctx.channels;
+    fn sample(&mut self, ctx: &mut Context, input: &Frame) {
+        let channels = ctx.channels();
         for i in 0..channels {
             self.ys[i] = (self.f)(input[i], input[i + channels], input[i + 2 * channels]);
         }

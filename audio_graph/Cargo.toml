@@ -1,0 +1,8 @@
+[package]
+name = "audio_graph"
+version = "0.1.0"
+authors = ["Ruslan Prokopchuk <fer.obbee@gmail.com>"]
+
+[dependencies]
+fixedbitset = "0"
+petgraph = "0"

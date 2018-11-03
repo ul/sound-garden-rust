@@ -1,31 +1,54 @@
+//! # Sound Garden
+//!
+//! Sound Garden is a virtual modular audio synthesis environment.
+
+extern crate audio_graph;
+#[macro_use]
+extern crate conrod;
 extern crate cpal;
-extern crate fixedbitset;
-extern crate petgraph;
+extern crate parking_lot;
 
 mod audio;
-mod context;
-mod graph;
-mod module;
-mod modules;
 mod prelude;
-mod pure;
-mod sugar;
+mod ui;
 
-use prelude::*;
-
+/// Right now code in the `main` is just a playground for testing API and UI design.
+/// With time it should:
+/// * Process command-line arguments to configure SG instance
+///    (list/select audio backend/device, on/off input/OSC, OSC ports, path to record session etc.)
+/// * Initialize OSC and run background OSC server thread
+/// * Initialize audio and run background audio event loop thread
+/// * Initialize UI and run its event loop
 fn main() {
-    let (event_loop, ctx) = audio::init();
-    let mut g = AudioGraph::new(ctx);
+    let g = audio::init();
 
-    let lfo_freq = g.constant(0.5);
-    let lfo_osc = g.sine(lfo_freq);
-    let lfo_factor = g.constant(20.0);
-    let lfo = g.mul(lfo_osc, lfo_factor);
+    {
+        let mut g = g.lock();
 
-    let base_freq = g.constant(440.0);
-    let freq = g.add(lfo, base_freq);
+        // A bit of a simple FM synth, WoooWoooWooo!
+        //
+        // We use "sweet" API which hides creating node, adding node and connecting node's inputs
+        // behind a single AudioGraph method. All functions used below return node index. Index
+        // could be used to reference node during entire program lifetime because AudioGraph is
+        // backed by StableGraph. When maximum flexibility is needed, each step could be performed
+        // separately, for example:
+        //
+        // let freq = Constant::new(440.0);
+        // let freq = g.add_node(freq);
+        // let saw = Phasor::new();
+        // let saw = g.add_node(saw);
+        // g.connect(freq, saw);
 
-    g.sine(freq);
+        let lfo_freq = g.constant(0.5);
+        let lfo_osc = g.sine(lfo_freq);
+        let lfo_factor = g.constant(20.0);
+        let lfo = g.mul(lfo_osc, lfo_factor);
 
-    audio::run(&event_loop, g);
+        let base_freq = g.constant(440.0);
+        let freq = g.add(lfo, base_freq);
+
+        g.sine(freq);
+    }
+
+    ui::main();
 }
