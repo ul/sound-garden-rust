@@ -9,6 +9,7 @@ authors = ["Ruslan Prokopchuk <fer.obbee@gmail.com>"]
 audio_graph = { path = "audio_graph" } 
 conrod = { version = "0", features = ["glium", "winit"] }
 cpal = "0"
+find_folder = "0"
 parking_lot = "0"
 
 [profile.release]

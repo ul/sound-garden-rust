@@ -6,6 +6,7 @@ extern crate audio_graph;
 #[macro_use]
 extern crate conrod;
 extern crate cpal;
+extern crate find_folder;
 extern crate parking_lot;
 
 mod audio;
