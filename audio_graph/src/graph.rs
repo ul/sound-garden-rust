@@ -1,75 +1,71 @@
 //! # Audio graph
+use context::Context;
 use fixedbitset::FixedBitSet;
-use petgraph::visit::Topo;
-
-use prelude::*;
+use module::Module;
+use petgraph::algo::{toposort, DfsSpace};
+use petgraph::prelude::*;
+use sample::{Frame, Sample};
 
 pub type Node = Box<Module + Send>;
 
-/// Structure which manages network of Modules
+/// Structure which manages network of Modules.
 pub struct AudioGraph {
-    /// audio context (channel count, sample rate, time etc.)
+    /// Audio context (channel count, sample rate, time etc.).
     pub ctx: Context,
-    /// nodes are boxed Modules and edges represent source->sink connections
+    /// Nodes are boxed Modules and edges represent source->sink connections.
     graph: StableGraph<Node, ()>,
-    /// `sample` walks graph in topological order; Topo structure is stored in AudioGraph to avoid
-    /// memory allocations in `sample`, which just resets it before traversal
-    topo: Topo<NodeIndex, FixedBitSet>,
-    /// `sample` writes output from source nodes into this buffer and then passes it to sink
-    /// buffer is reused during graph traversal and between samples to avoid memory allocations
+    /// `sample` writes output from source nodes into this buffer and then passes it to sink.
+    /// Buffer is reused during graph traversal and between samples to avoid memory allocations.
     input: Vec<Sample>,
+    /// `sample` walks graph in topological order which is cached here.
+    order: Vec<NodeIndex>,
+    space: DfsSpace<NodeIndex, FixedBitSet>,
 }
 
 /// Maximum number of sources to connect to sink.
 /// This number is required because input buffer is allocated during AudioGraph initialization and
 /// then re-used across all nodes sampling. There is no real need to have it hardcoded though.
-/// It can be made an argument of AudioGraph::new
+/// It can be made an argument of AudioGraph::new.
 const MAX_SOURCES: usize = 16;
 
 impl AudioGraph {
     pub fn new(ctx: Context) -> Self {
         let graph = StableGraph::default();
-        let topo = Topo::new(&graph);
+        let space = DfsSpace::new(&graph);
         let input_len = ctx.channels() * MAX_SOURCES;
         AudioGraph {
             ctx,
             graph,
-            topo,
             input: vec![0.0; input_len],
+            order: Vec::new(),
+            space,
         }
     }
 
     /// Compute and return the next frame of AudioGraph's sound stream.
     /// Frame slice contains one sample for each channel.
     pub fn sample(&mut self) -> &Frame {
-        let mut last_node = None;
-        {
-            let input = &mut self.input;
-            let ctx = &mut self.ctx;
-            let channels = ctx.channels();
-            self.topo.reset(&self.graph);
-            while let Some(idx) = self.topo.next(&self.graph) {
-                last_node = Some(idx);
-                let g = &mut self.graph;
-                // NOTE neighbors_directed walks edges starting from the most recently added (is it
-                // guaranteed?). This is the reason why connection methods (connect, set_sources,
-                // chain etc.) call clear_sources first and reverse sources. Always resetting
-                // sources instead of finer-grained manipulation reduces risk of confusing their
-                // order. We might want to consider to name edges and pass HashMap instead instead
-                // of Vec as input. But it implies non-neglegible performance hit.
-                //
-                // ref `Module::sample` doc for an example of input layout
-                for (i, source) in g.neighbors_directed(idx, Incoming).enumerate() {
-                    let offset = i * channels;
-                    let output = g[source].output();
-                    input[offset..(offset + channels)].clone_from_slice(&output[..channels])
-                }
-                g[idx].sample(ctx, input);
+        let channels = self.ctx.channels();
+        for idx in &self.order {
+            let idx = *idx;
+            let g = &mut self.graph;
+            // NOTE neighbors_directed walks edges starting from the most recently added (is it
+            // guaranteed?). This is the reason why connection methods (connect, set_sources,
+            // chain etc.) call clear_sources first and reverse sources. Always resetting
+            // sources instead of finer-grained manipulation reduces risk of confusing their
+            // order. We might want to consider to name edges and pass HashMap instead instead
+            // of Vec as input. But it implies non-neglegible performance hit.
+            //
+            // Ref `Module::sample` doc for an example of input layout.
+            for (i, source) in g.neighbors_directed(idx, Incoming).enumerate() {
+                let offset = i * channels;
+                self.input[offset..(offset + channels)].clone_from_slice(g[source].output());
             }
-            ctx.tick();
+            g[idx].sample(&mut self.ctx, &self.input);
         }
-        if let Some(idx) = last_node {
-            &self.graph[idx].output()
+        self.ctx.tick();
+        if !self.order.is_empty() {
+            &self.graph[self.order[self.order.len() - 1]].output()
         } else {
             // This might be a garbage, we just don't care what to return from empty graph
             // and don't want to allocate any extra resources for such case.
@@ -90,6 +86,7 @@ impl AudioGraph {
             self.clear_sources(nodes[i + 1]);
             self.graph.update_edge(nodes[i], nodes[i + 1], ());
         }
+        self.update_order();
     }
 
     /// Set node `a` as a single source of node `b`.
@@ -97,6 +94,7 @@ impl AudioGraph {
     pub fn connect(&mut self, a: NodeIndex, b: NodeIndex) {
         self.clear_sources(b);
         self.graph.update_edge(a, b, ());
+        self.update_order();
     }
 
     /// Set multiple sources for the `sink` node.
@@ -109,6 +107,7 @@ impl AudioGraph {
         for source in sources.iter().rev() {
             self.graph.update_edge(*source, sink, ());
         }
+        self.update_order();
     }
 
     /// Remove all incoming connections of the node.
@@ -121,5 +120,11 @@ impl AudioGraph {
         {
             self.graph.remove_edge(edge);
         }
+    }
+
+    /// Update node traversal order.
+    /// It must be called after any connection change.
+    fn update_order(&mut self) {
+        self.order = toposort(&self.graph, Some(&mut self.space)).unwrap();
     }
 }

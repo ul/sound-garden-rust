@@ -3,6 +3,9 @@ use prelude::*;
 
 /// Defines behavior of sound-producing node.
 pub trait Module {
+    /// How many sources must be connected to this module.
+    fn inputs(&self) -> u8;
+
     /// Get Module's current frame.
     ///
     /// Must return the same value if no `sample` was called for Modules in-between.

@@ -25,7 +25,8 @@ pub fn init() -> Arc<Mutex<AudioGraph>> {
     let event_loop = cpal::EventLoop::new();
     let stream_id = event_loop.build_output_stream(&device, &format).unwrap();
     event_loop.play_stream(stream_id.clone());
-    let ctx = Context::new(format.channels as usize, format.sample_rate.0 as usize);
+    let channels = format.channels as usize;
+    let ctx = Context::new(channels, format.sample_rate.0 as usize);
     let graph = Arc::new(Mutex::new(AudioGraph::new(ctx)));
 
     thread::spawn({
@@ -38,7 +39,7 @@ pub fn init() -> Arc<Mutex<AudioGraph>> {
                         cpal::StreamData::Output {
                             buffer: cpal::UnknownTypeOutputBuffer::U16(mut buffer),
                         } => {
-                            for sample in buffer.chunks_mut(graph.ctx.channels()) {
+                            for sample in buffer.chunks_mut(channels) {
                                 let output = graph.sample();
                                 for i in 0..sample.len() {
                                     sample[i] =
@@ -49,7 +50,7 @@ pub fn init() -> Arc<Mutex<AudioGraph>> {
                         cpal::StreamData::Output {
                             buffer: cpal::UnknownTypeOutputBuffer::I16(mut buffer),
                         } => {
-                            for sample in buffer.chunks_mut(graph.ctx.channels()) {
+                            for sample in buffer.chunks_mut(channels) {
                                 let output = graph.sample();
                                 for i in 0..sample.len() {
                                     sample[i] = (output[i] * f64::from(std::i16::MAX)) as i16;
@@ -59,7 +60,7 @@ pub fn init() -> Arc<Mutex<AudioGraph>> {
                         cpal::StreamData::Output {
                             buffer: cpal::UnknownTypeOutputBuffer::F32(mut buffer),
                         } => {
-                            for sample in buffer.chunks_mut(graph.ctx.channels()) {
+                            for sample in buffer.chunks_mut(channels) {
                                 let output = graph.sample();
                                 for i in 0..sample.len() {
                                     sample[i] = output[i] as f32;

@@ -14,14 +14,22 @@ pub struct Fn1 {
 
 impl Fn1 {
     pub fn new(ctx: &Context, f: fn(Sample) -> Sample) -> Box<Self> {
-        Box::new(Fn1 {
+        Box::new(Fn1::raw(ctx, f))
+    }
+
+    pub fn raw(ctx: &Context, f: fn(Sample) -> Sample) -> Self {
+        Fn1 {
             ys: vec![0.0; ctx.channels()],
             f,
-        })
+        }
     }
 }
 
 impl Module for Fn1 {
+    fn inputs(&self) -> u8 {
+        1
+    }
+
     fn output(&self) -> &Frame {
         &self.ys
     }
@@ -48,6 +56,10 @@ impl Fn2 {
 }
 
 impl Module for Fn2 {
+    fn inputs(&self) -> u8 {
+        2
+    }
+
     fn output(&self) -> &Frame {
         &self.ys
     }
@@ -75,6 +87,10 @@ impl Fn3 {
 }
 
 impl Module for Fn3 {
+    fn inputs(&self) -> u8 {
+        3
+    }
+
     fn output(&self) -> &Frame {
         &self.ys
     }

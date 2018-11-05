@@ -42,7 +42,10 @@ impl AudioGraph {
     }
 
     pub fn sine(&mut self, frequency: NodeIndex) -> NodeIndex {
-        self.osc(sine, frequency)
+        let node = Sine::new(&self.ctx);
+        let node_idx = self.add_node(node);
+        self.connect(frequency, node_idx);
+        node_idx
     }
 
     pub fn cosine(&mut self, frequency: NodeIndex) -> NodeIndex {

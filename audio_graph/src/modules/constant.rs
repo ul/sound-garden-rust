@@ -20,6 +20,10 @@ impl Constant {
 }
 
 impl Module for Constant {
+    fn inputs(&self) -> u8 {
+        0
+    }
+
     fn output(&self) -> &Frame {
         &self.values
     }

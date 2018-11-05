@@ -34,9 +34,9 @@ fn main() {
         // backed by StableGraph. When maximum flexibility is needed, each step could be performed
         // separately, for example:
         //
-        // let freq = Constant::new(440.0);
+        // let freq = Constant::new(&g.ctx, 440.0);
         // let freq = g.add_node(freq);
-        // let saw = Phasor::new();
+        // let saw = Phasor::new(&g.ctx);
         // let saw = g.add_node(saw);
         // g.connect(freq, saw);
 

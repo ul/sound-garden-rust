@@ -26,13 +26,21 @@ pub struct Phasor {
 
 impl Phasor {
     pub fn new(ctx: &Context) -> Box<Self> {
-        Box::new(Phasor {
+        Box::new(Phasor::raw(ctx))
+    }
+
+    pub fn raw(ctx: &Context) -> Self {
+        Phasor {
             phases: vec![0.0; ctx.channels()],
-        })
+        }
     }
 }
 
 impl Module for Phasor {
+    fn inputs(&self) -> u8 {
+        1
+    }
+
     fn output(&self) -> &Frame {
         &self.phases
     }
