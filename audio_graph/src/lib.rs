@@ -4,6 +4,7 @@
 //! audio signal modules. BYO audio driver or audio file encoder to play or record generated sound.
 extern crate fixedbitset;
 extern crate petgraph;
+extern crate rand;
 
 pub mod graph;
 pub mod module;

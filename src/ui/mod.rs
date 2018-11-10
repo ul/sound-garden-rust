@@ -34,10 +34,14 @@ impl Handler {
                 "s" | "sine" => Box::new(Osc::new(channels, sample_rate, sine)),
                 "t" | "tri" => Box::new(Osc::new(channels, sample_rate, triangle)),
                 "w" | "saw" => Box::new(Phasor::new(channels, sample_rate)),
+                "p" | "pulse" => Box::new(Pulse::new(channels, sample_rate)),
                 "+" => Box::new(Fn2::new(channels, add)),
                 "-" => Box::new(Fn2::new(channels, sub)),
                 "*" => Box::new(Fn2::new(channels, mul)),
                 "/" => Box::new(Fn2::new(channels, div)),
+                "unit" => Box::new(Fn1::new(channels, unit)),
+                "r" | "range" => Box::new(Fn3::new(channels, range)),
+                "n" | "noise" => Box::new(Noise::new(channels)),
                 _ => match token.parse::<Sample>() {
                     Ok(x) => Box::new(Constant::new(channels, x)),
                     Err(_) => {
