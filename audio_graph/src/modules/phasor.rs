@@ -16,22 +16,19 @@
 //! themselves anymore.
 //!
 //! Sources to connect: frequency.
-use context::Context;
 use module::Module;
 use sample::{Frame, Sample};
 
 pub struct Phasor {
     phases: Vec<Sample>,
+    sample_rate: Sample,
 }
 
 impl Phasor {
-    pub fn new(ctx: &Context) -> Box<Self> {
-        Box::new(Phasor::raw(ctx))
-    }
-
-    pub fn raw(ctx: &Context) -> Self {
+    pub fn new(channels: usize, sample_rate: usize) -> Self {
         Phasor {
-            phases: vec![0.0; ctx.channels()],
+            phases: vec![0.0; channels],
+            sample_rate: sample_rate as Sample,
         }
     }
 }
@@ -45,9 +42,9 @@ impl Module for Phasor {
         &self.phases
     }
 
-    fn sample(&mut self, ctx: &mut Context, input: &Frame) {
+    fn sample(&mut self, input: &Frame) {
         for (phase, frequency) in self.phases.iter_mut().zip(input.iter()) {
-            let dx = frequency / ctx.sample_rate() as f64;
+            let dx = frequency / self.sample_rate;
             *phase = ((*phase + dx + 1.0) % 2.0) - 1.0;;
         }
     }

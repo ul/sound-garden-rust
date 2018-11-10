@@ -17,7 +17,7 @@ use std::thread;
 /// configurable.
 /// Also, though it's no point in running SG if audio initialization fails this function should
 /// still return Result instead of panic.
-pub fn init() -> Arc<Mutex<AudioGraph>> {
+pub fn init() -> (cpal::Format, Arc<Mutex<AudioGraph>>) {
     let device = cpal::default_output_device().expect("Failed to get default output device");
     let format = device
         .default_output_format()
@@ -26,8 +26,7 @@ pub fn init() -> Arc<Mutex<AudioGraph>> {
     let stream_id = event_loop.build_output_stream(&device, &format).unwrap();
     event_loop.play_stream(stream_id.clone());
     let channels = format.channels as usize;
-    let ctx = Context::new(channels, format.sample_rate.0 as usize);
-    let graph = Arc::new(Mutex::new(AudioGraph::new(ctx)));
+    let graph = Arc::new(Mutex::new(AudioGraph::new(channels)));
 
     thread::spawn({
         let graph = graph.clone();
@@ -74,5 +73,5 @@ pub fn init() -> Arc<Mutex<AudioGraph>> {
         }
     });
 
-    graph
+    (format, graph)
 }

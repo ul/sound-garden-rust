@@ -1,5 +1,4 @@
 //! # Audio graph
-use context::Context;
 use fixedbitset::FixedBitSet;
 use module::Module;
 use petgraph::algo::{toposort, DfsSpace};
@@ -10,8 +9,7 @@ pub type Node = Box<Module + Send>;
 
 /// Structure which manages network of Modules.
 pub struct AudioGraph {
-    /// Audio context (channel count, sample rate, time etc.).
-    pub ctx: Context,
+    channels: usize,
     /// Nodes are boxed Modules and edges represent source->sink connections.
     graph: StableGraph<Node, ()>,
     /// `sample` writes output from source nodes into this buffer and then passes it to sink.
@@ -29,12 +27,12 @@ pub struct AudioGraph {
 const MAX_SOURCES: usize = 16;
 
 impl AudioGraph {
-    pub fn new(ctx: Context) -> Self {
+    pub fn new(channels: usize) -> Self {
         let graph = StableGraph::default();
         let space = DfsSpace::new(&graph);
-        let input_len = ctx.channels() * MAX_SOURCES;
+        let input_len = channels * MAX_SOURCES;
         AudioGraph {
-            ctx,
+            channels,
             graph,
             input: vec![0.0; input_len],
             order: Vec::new(),
@@ -45,7 +43,7 @@ impl AudioGraph {
     /// Compute and return the next frame of AudioGraph's sound stream.
     /// Frame slice contains one sample for each channel.
     pub fn sample(&mut self) -> &Frame {
-        let channels = self.ctx.channels();
+        let channels = self.channels;
         for idx in &self.order {
             let idx = *idx;
             let g = &mut self.graph;
@@ -61,9 +59,8 @@ impl AudioGraph {
                 let offset = i * channels;
                 self.input[offset..(offset + channels)].clone_from_slice(g[source].output());
             }
-            g[idx].sample(&mut self.ctx, &self.input);
+            g[idx].sample(&self.input);
         }
-        self.ctx.tick();
         if !self.order.is_empty() {
             &self.graph[self.order[self.order.len() - 1]].output()
         } else {
@@ -71,6 +68,10 @@ impl AudioGraph {
             // and don't want to allocate any extra resources for such case.
             &self.input
         }
+    }
+
+    pub fn node(&self, idx: NodeIndex) -> &Node {
+        &self.graph[idx]
     }
 
     /// Add node to the graph and return index assigned to the node.
@@ -110,6 +111,20 @@ impl AudioGraph {
         self.update_order();
     }
 
+    pub fn set_sources_rev(&mut self, sink: NodeIndex, sources: &[NodeIndex]) {
+        self.clear_sources(sink);
+        // ref `sample` method comments for the reason of reversing sources
+        for source in sources.iter() {
+            self.graph.update_edge(*source, sink, ());
+        }
+        self.update_order();
+    }
+
+    pub fn clear(&mut self) {
+        self.graph.clear();
+        self.order.clear();
+    }
+
     /// Remove all incoming connections of the node.
     fn clear_sources(&mut self, sink: NodeIndex) {
         while let Some(edge) = self
@@ -125,6 +140,6 @@ impl AudioGraph {
     /// Update node traversal order.
     /// It must be called after any connection change.
     fn update_order(&mut self) {
-        self.order = toposort(&self.graph, Some(&mut self.space)).unwrap();
+        self.order = toposort(&self.graph, Some(&mut self.space)).unwrap_or_else(|_| vec![]);
     }
 }

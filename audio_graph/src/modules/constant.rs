@@ -3,7 +3,6 @@
 //! Constant module always outputs the same given sample in all channels.
 //!
 //! Sources to connect: none required.
-use context::Context;
 use module::Module;
 use sample::{Frame, Sample};
 
@@ -12,10 +11,10 @@ pub struct Constant {
 }
 
 impl Constant {
-    pub fn new(ctx: &Context, x: Sample) -> Box<Self> {
-        Box::new(Constant {
-            values: vec![x; ctx.channels()],
-        })
+    pub fn new(channels: usize, x: Sample) -> Self {
+        Constant {
+            values: vec![x; channels],
+        }
     }
 }
 
@@ -28,5 +27,5 @@ impl Module for Constant {
         &self.values
     }
 
-    fn sample(&mut self, _ctx: &mut Context, _input: &Frame) {}
+    fn sample(&mut self, _input: &Frame) {}
 }

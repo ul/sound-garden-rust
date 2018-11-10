@@ -5,11 +5,9 @@
 extern crate fixedbitset;
 extern crate petgraph;
 
-pub mod context;
 pub mod graph;
 pub mod module;
 pub mod modules;
 pub mod prelude;
 pub mod pure;
 pub mod sample;
-pub mod sugar;

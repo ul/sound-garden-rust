@@ -1,5 +1,5 @@
 //! # Module
-use prelude::*;
+use sample::{Frame, Sample};
 
 /// Defines behavior of sound-producing node.
 pub trait Module {
@@ -8,7 +8,7 @@ pub trait Module {
 
     /// Get Module's current frame.
     ///
-    /// Must return the same value if no `sample` was called for Modules in-between.
+    /// Must contain the same value if no `sample` was called for Modules in-between.
     fn output(&self) -> &Frame;
 
     /// Compute the next frame.
@@ -31,5 +31,5 @@ pub trait Module {
     ///                                 V V V V V V
     /// sink input:                   [ 0 1 2 3 4 5 ]
     /// ```
-    fn sample(&mut self, ctx: &mut Context, input: &[Sample]);
+    fn sample(&mut self, input: &[Sample]);
 }
