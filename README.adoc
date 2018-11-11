@@ -5,13 +5,7 @@ This README is intentionally scarce, and it will be updated as the app will achi
 
 == Prerequisites
 
-=== Rust
-
 Sound Garden works on the stable Rust. The best way I know to install and keep it up-to-date is https://rustup.rs/
-
-=== Sciter
-
-Sound Garden uses https://sciter.com/[Sciter] for its UI. Please download https://sciter.com/sdk/sciter-sdk.zip[sciter-sdk] and copy `sciter32/64.dll` (Windows) or `sciter-osx-64.dylib` (macOS) or `sciter-gtk-64.so` (Linux) to the directory in your PATH (e.g. `/usr/local/lib/` on macOS).
 
 == Build & Run
 
