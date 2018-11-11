@@ -1,0 +1,34 @@
+= Sound Garden
+
+This is WIP port to Rust and evolution of https://github.com/ul/sound-garden.
+This README is intentionally scarce, and it will be updated as the app will achieve usability level of the predecessor.
+
+== Prerequisites
+
+=== Rust
+
+Sound Garden works on the stable Rust. The best way I know to install and keep it up-to-date is https://rustup.rs/
+
+=== Sciter
+
+Sound Garden uses https://sciter.com/[Sciter] for its UI. Please download https://sciter.com/sdk/sciter-sdk.zip[sciter-sdk] and copy `sciter32/64.dll` (Windows) or `sciter-osx-64.dylib` (macOS) or `sciter-gtk-64.so` (Linux) to the directory in your PATH (e.g. `/usr/local/lib/` on macOS).
+
+== Build & Run
+
+----
+$ cargo run --release
+----
+
+== UI
+
+Just type modules list in the text area and press SHIFT+RETURN to evaluate it.
+Note that it always starts with the empty stack as opposed to REPL mode in the predecessor.
+It means that the entire program must present in the text area.
+Parsing treats newlines as whitespace, feel free to format your modules list as you like.
+
+== Modules
+
+At the moment only few modules are ported: `n`/`noise`, `s`/`sine`, `t`/`tri`, `w`/`saw`, `p`/`pulse`,
+`+`, `-`, `*`, `/`, `unit`, `r`/`range` and constants.
+Refer predecessor's http://ul.mantike.pro/sound-garden/README.html for docs.
+The notable difference from that described in the docs: oscillators in the long form doesn't take initial phase as a second input (so `sine` is the same as `s`).
